@@ -29,40 +29,46 @@ public class CartService {
         var cartItemsList = new ArrayList<CartItemEntity>();
 
         for (CartItemRequest itemReq : createCartRequest.getCartItems()) {
+            System.out.println("Procesando producto ID: " + itemReq.getProductId() + ", cantidad: " + itemReq.getQuantity());
+
             Optional<ProductEntity> productOpt = productRepository.findById(itemReq.getProductId());
 
             if (productOpt.isEmpty()) {
+                System.out.println(" ERROR: Producto no encontrado con ID " + itemReq.getProductId());
                 throw new IllegalArgumentException("Product with ID " + itemReq.getProductId() + " does not exist.");
             }
 
             ProductEntity product = productOpt.get();
 
             if (itemReq.getQuantity() <= 0) {
+                System.out.println(" ERROR: Cantidad inválida para producto ID " + itemReq.getProductId());
                 throw new IllegalArgumentException("Quantity must be greater than zero.");
             }
 
             if (product.getQuantity() < itemReq.getQuantity()) {
+                System.out.println(" ERROR: Inventario insuficiente para producto ID " + itemReq.getProductId());
                 throw new IllegalArgumentException("Insufficient inventory for product ID " + itemReq.getProductId());
             }
 
-            // Restar la cantidad del inventario del producto
+            // Restar del inventario
             product.setQuantity(product.getQuantity() - itemReq.getQuantity());
             productRepository.save(product);
 
-            // Crear CartItemEntity
+            // Agregar al carrito
             CartItemEntity cartItem = new CartItemEntity();
             cartItem.setProduct(product);
             cartItem.setQuantity(itemReq.getQuantity());
             cartItemsList.add(cartItem);
 
-            // Calcular el precio total
             totalPrice += product.getPrice() * itemReq.getQuantity();
         }
 
         cart.setCartItems(cartItemsList);
         cart.setTotalPrice(totalPrice);
 
-        return cartRepository.save(cart);
+        CartEntity savedCart = cartRepository.save(cart);
+        System.out.println(" Carrito creado con ID " + savedCart.getId() + ", total: " + savedCart.getTotalPrice());
+        return savedCart;
     }
 
     public Optional<CartEntity> getCartById(Long id) {
